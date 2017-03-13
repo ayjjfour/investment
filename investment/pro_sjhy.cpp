@@ -22,6 +22,8 @@ double pro_sjhy::vir_get_interest(void)
 {
 	double interest = m_interest;
 
+	// printf("m_cur_circle = %d, m_left_interest = %f, m_interest = %f\n", m_cur_circle, m_left_interest, m_interest);
+
 	m_left_interest -= m_interest;
 	m_interest = 0;
 
@@ -30,10 +32,10 @@ double pro_sjhy::vir_get_interest(void)
 
 void pro_sjhy::_vir_run_one_circle(void)
 {
-	m_cur_circle++;
-
 	if (m_cur_circle < g_capital_circle)
 		m_interest += 300;
 	else
 		m_interest += 350;
+
+	m_cur_circle++;
 }
