@@ -6,10 +6,12 @@ project_manager::project_manager(void)
 	m_ret_cycle = 4;
 	m_ret_debet = 20000;
 	m_b_ret_debet = false;
+	m_turn_money = 0;
 	m_total_money = 0;
 	m_total_unit = 0;
 	m_debet = 0;
 	m_used = 0;
+	m_ready_used = 0;
 
 	m_add_unit = 0;
 	m_add_cycle = 0;
@@ -54,33 +56,40 @@ bool project_manager::_create_project_unit(bool isdebet)
 	double rate = 0.0f;
 	unsigned int i = 0;
 	double debet = 0.0f;
+	unsigned int turns = 0;
 
 	if (isdebet)
 		debet = m_ret_debet;
 
-	while (m_used - debet>= g_capital)
+	if (m_total_money < 1)
+		rate = 0.0f;
+	else if (m_total_money < 300000)
+		rate = 0.08;
+	else
+		rate = 0.1;
+
+	while (m_used - debet >= g_capital)
 	{
 		pro_sjhy*	pro = new pro_sjhy;
 		if (nullptr == pro)
 			return false;
 
-		m_total_money += g_capital;
+		m_turn_money += g_capital;
 		m_total_unit++;
+		turns++;
 		_add_project_unit(pro);
 		m_used -= g_capital;
 		i++;
 	}
 
-	if (m_total_money < 300000)
-		rate = 0.08;
-	else
-		rate = 0.1;
+	if (turns > 0)
+	{
+		if (times != 0)
+			m_ready_used += (g_capital * rate * turns);
+		else
+			times = 1;
+	}
 
-	if (times != 0)
-		m_used += (g_capital * rate * i);
-	else
-		times = 1;
-	
 	return true;
 }
 
@@ -109,23 +118,25 @@ void project_manager::_add_unit(unsigned int unit)
 {
 	double rate = 0.0f;
 
+	if (m_total_money < 1)
+		rate = 0.0f;
+	else if (m_total_money < 300000)
+		rate = 0.08;
+	else
+		rate = 0.1;
+
+	m_ready_used += (g_capital * rate * unit);
+
 	for (unsigned int i = 0; i < unit; i++)
 	{
 		pro_sjhy*	pro = new pro_sjhy;
 		if (nullptr == pro)
 			return;
 
-		m_total_money += g_capital;
+		m_turn_money += g_capital;
 		m_total_unit++;
 		_add_project_unit(pro);
 	}
-
-	if (m_total_money < 300000)
-		rate = 0.08;
-	else
-		rate = 0.1;
-
-	m_used += (g_capital * rate * unit);
 }
 
 void project_manager::_ret_debet(void)
@@ -164,56 +175,73 @@ void project_manager::set_reinvest(unsigned int unit, unsigned int cycles, bool 
 
 void project_manager::run_circles(unsigned int cycles)
 {
-	static unsigned long long			runs = 0;
 	list<project_unit*>::iterator		it;
 
+	m_runs = 0;
 	while(cycles-- > 0)
 	{
+		// 开始运行
 		for (it = m_list_project.begin(); it != m_list_project.end(); it++)
 		{
 			if (nullptr != (*it))
 				(*it)->vir_run_circles(1);
 		}
 
-		double pre_insterest = 0;
-		for (it = m_list_project.begin(); it != m_list_project.end(); )
-		{
-			if (nullptr == (*it))
-			{
-				m_list_project.erase(it++);
-				continue;
-			}
+		m_runs ++;
 
-			m_used += (*it)->vir_get_interest();
-			pre_insterest += (*it)->vir_get_left_interest();
-
-			if ((*it)->vir_is_over())
-			{
-				m_list_project.erase(it++);
-				continue;
-			}
-
-			it++;
-		}
-
-		runs ++;
-
-		if (runs > m_ret_start)
-			m_b_ret_debet = true;
-
-		if (m_b_ret_debet && ((runs - m_ret_start) % m_ret_cycle == 0))
-			_ret_debet();
-		
-		printf("run(%03lld): units=%d, used=%.0f insterest=%.0f debet=%.0f all=%.3f\n", 
-					runs, m_total_unit, m_used, pre_insterest, m_debet, (m_used + pre_insterest - m_debet) / 10000);
-
-		if (runs % m_add_cycle == 0)
-		{
-			printf("\n");
-			_add_unit(m_add_unit);
-		}
-
-		if (m_b_reinv)
-			_create_project_unit(m_b_ret_debet);
+		_ready_to_next_run();
 	}
+}
+
+void project_manager::_ready_to_next_run(void)
+{
+	// 资金规划
+	m_used += m_ready_used;				// 将下一轮的可用资金规划到可用字节中
+	m_ready_used = 0;
+	m_total_money += m_turn_money;		// 本轮总投资规划到总投资中
+	m_turn_money = 0;
+
+	// 清除已经完成的投单
+	list<project_unit*>::iterator		it;
+	double left_insterest = 0.0f;
+	for (it = m_list_project.begin(); it != m_list_project.end(); )
+	{
+		if (nullptr == (*it))
+		{
+			m_list_project.erase(it++);
+			continue;
+		}
+
+		left_insterest += (*it)->vir_get_left_interest();
+		m_used += (*it)->vir_get_interest();
+
+		if ((*it)->vir_is_over())
+		{
+			m_list_project.erase(it++);
+			continue;
+		}
+
+		it++;
+	}
+
+	printf("run(%03d): units=%d, cunit=%d, used=%.0f insterest=%.0f debet=%.0f all=%.3f\n", 
+		m_runs, m_total_unit, m_list_project.size(), m_used, left_insterest, m_debet, (m_used + left_insterest - m_debet) / 10000);
+
+	// 还债
+	//if (m_runs >= m_ret_start)
+		m_b_ret_debet = true;
+
+	if (m_b_ret_debet && ((m_runs - m_ret_start) % m_ret_cycle == 0))
+		_ret_debet();
+
+	// 追加投单
+	if (m_runs % m_add_cycle == 0)
+	{
+		printf("\n");
+		_add_unit(m_add_unit);
+	}
+
+	// 循环投单
+	if (m_b_reinv)
+		_create_project_unit(m_b_ret_debet);
 }

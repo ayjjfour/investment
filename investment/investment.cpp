@@ -15,9 +15,10 @@ int _tmain(int argc, _TCHAR* argv[])
 	mg.run_circles(52 * 0.5);
 	*/
 
-	mg.add_money(g_capital * 20, false);
-	//mg.set_ret_debet(20000, 4, 1);
-	mg.set_reinvest(0, 4, true);
+	mg.add_money(g_capital * 5, false);
+	mg.add_money(g_capital * 18, true);
+	mg.set_ret_debet(20000, 4, 4);
+	mg.set_reinvest(1, 4, true);
 	//mg.add_debet(g_capital * 24);
 	mg.run_circles(52 * 3);
 

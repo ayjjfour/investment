@@ -15,6 +15,8 @@ public:
 protected:
 	double						m_debet;				// 负债
 	double						m_used;					// 可用资金
+	double						m_ready_used;			// 下一个周期的可用资金
+	double						m_turn_money;			// 本轮投资
 	double						m_total_money;			// 总投资
 	unsigned int				m_total_unit;			// 总单数
 	double						m_ret_debet;			// 还债金额
@@ -26,6 +28,8 @@ protected:
 	unsigned int				m_add_cycle;			// 追加间隔周期
 	bool						m_b_reinv;				// 是否复投
 	list<project_unit*>			m_list_project;
+
+	unsigned int				m_runs;					// 运行周期
 
 public:
 	///<summary>释放资源</summary>
@@ -56,6 +60,7 @@ public:
 	///<param name="cycles">每次追加间隔周期数</param>
 	///<param name="reivn">获利是否复投</param>
 	void set_reinvest(unsigned int unit, unsigned int cycles, bool reinv);
+
 protected:
 	///<summary>释放资源</summary>
 	void _release(void);
@@ -75,5 +80,8 @@ protected:
 	///<summary>添加一个项目单元</summary>
 	///<return>true:添加成功,false:添加失败</return>
 	bool _add_project_unit(project_unit* punit);
+
+	///<summary>准备下一个运行阶段阶段</summary>
+	void _ready_to_next_run(void);
 };
 
