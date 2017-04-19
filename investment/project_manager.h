@@ -74,8 +74,9 @@ protected:
 
 	///<summary>创建一个项目单元</summary>
 	///<param name="isdebet">是否考虑债务</param>
+	///<param name="maxcount">每次最多投单数,</param>
 	///<return>true:添加成功,false:添加失败</return>
-	bool _create_project_unit(bool isdebet = false);
+	bool _create_project_unit(bool isdebet = false, unsigned int maxcount = -1);
 
 	///<summary>添加一个项目单元</summary>
 	///<return>true:添加成功,false:添加失败</return>

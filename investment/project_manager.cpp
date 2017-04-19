@@ -50,7 +50,7 @@ void project_manager::add_money(double money, bool isdebet)
 		m_debet += money;
 }
 
-bool project_manager::_create_project_unit(bool isdebet)
+bool project_manager::_create_project_unit(bool isdebet, unsigned int maxcount)
 {
 	static int times = 0;
 	double rate = 0.0f;
@@ -59,7 +59,9 @@ bool project_manager::_create_project_unit(bool isdebet)
 	unsigned int turns = 0;
 
 	if (isdebet)
-		debet = m_ret_debet;
+	{
+		debet = ((m_ret_debet < m_debet) ? m_ret_debet : m_debet);
+	}
 
 	if (m_total_money < 1)
 		rate = 0.0f;
@@ -68,7 +70,7 @@ bool project_manager::_create_project_unit(bool isdebet)
 	else
 		rate = 0.1;
 
-	while (m_used - debet >= g_capital)
+	while ((m_used - debet >= g_capital) && (maxcount-- > 0))
 	{
 		pro_sjhy*	pro = new pro_sjhy;
 		if (nullptr == pro)
@@ -243,5 +245,5 @@ void project_manager::_ready_to_next_run(void)
 
 	// Ñ­»·Í¶µ¥
 	if (m_b_reinv)
-		_create_project_unit(m_b_ret_debet);
+		_create_project_unit(false, -1);
 }
